@@ -17,7 +17,8 @@ import os
 #import sys
 #import site
 #import subprocess
-
+import dotenv
+dotenv.read_dotenv()
 
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__) + "../../")
 
