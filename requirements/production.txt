@@ -3,6 +3,7 @@
 
 # Django stuff
 Django>=1.8
+# django-cms>=3.1
 
 # Parse db url
 dj-database-url==0.3.0
@@ -15,25 +16,28 @@ django-getenv==1.3.1
 django_compressor
 
 # Security
+# Bleach is a HTML Sanitizing tool:
 bleach
 #cef
 
 # Logging
-#raven
+# raven
 
 # Celery: Message queue
-celery
-django-celery
+# celery
+# django-celery
 
 # L10n/i18n
-#Babel
-#-e git://github.com/clouserw/tower.git#egg=tower
+# Babel
+# -e git://github.com/clouserw/tower.git#egg=tower
 
 # Caching
 python-memcached
 
 # Admin
 django-debug-toolbar
+djangocms-admin-style==0.2.8
+django-admin-shortcuts==1.2.6
 
 # Feature testing
 #django-waffle

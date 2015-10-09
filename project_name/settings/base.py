@@ -5,19 +5,9 @@ repo. If you need to override a setting locally, use local.py
 
 import os
 import logging
-
-# Normally you should not import ANYTHING from Django directly
-# into your settings, but ImproperlyConfigured is an exception.
-from django.core.exceptions import ImproperlyConfigured
-
-
-def get_env_setting(setting):
-    """ Get the environment setting or return exception """
-    try:
-        return os.environ[setting]
-    except KeyError:
-        error_msg = "Set the %s env variable" % setting
-        raise ImproperlyConfigured(error_msg)
+import dj_database_url
+from getenv import env
+from django.utils.translation import ugettext_lazy as _
 
 
 # Your project root
@@ -27,7 +17,15 @@ SUPPORTED_NONLOCALES = ['media', 'admin', 'static']
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en'
+
+LANGUAGES = [
+    ('en', _('English'))
+]
+
+LOCALE_PATHS = [
+    os.path.join(PROJECT_ROOT, 'locale'),
+]
 
 # Defines the views served for root URLs.
 ROOT_URLCONF = '{{ project_name }}.urls'
@@ -66,6 +64,15 @@ PASSWORD_HASHERS = (
     'django.contrib.auth.hashers.MD5PasswordHasher',
     'django.contrib.auth.hashers.CryptPasswordHasher',
 )
+
+# SECURITY WARNING: don't run with debug turned on in production!
+# Debugging displays nice error messages, but leaks memory. Set this to False
+# on all server instances and True only for development.
+DEBUG = env('DEBUG', False)
+
+# Is this a development instance? Set this to True on development/master
+# instances and False on stage/prod.
+DEV = False
 
 # Sessions
 #
@@ -135,6 +142,13 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    # DjangoCMS:
+    # 'cms.middleware.user.CurrentUserMiddleware',
+    # 'cms.middleware.page.CurrentPageMiddleware',
+    # 'cms.middleware.toolbar.ToolbarMiddleware',
+    # 'cms.middleware.language.LanguageCookieMiddleware',
+
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
@@ -150,19 +164,39 @@ TEMPLATE_CONTEXT_PROCESSORS = [
     'django.contrib.messages.context_processors.messages',
 ]
 
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or
-    # "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-    os.path.join(PROJECT_ROOT, 'templates'),
-)
-
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
-)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            # Put strings here, like "/home/html/django_templates" or
+            # "C:/www/django/templates".
+            # Always use forward slashes, even on Windows.
+            # Don't forget to use absolute paths, not relative paths.
+            # /templates
+            os.path.join(PROJECT_ROOT, 'templates'),
+            # /lely/templates
+            os.path.join(PROJECT_ROOT, '{{ project_name }}', 'templates'),
+        ],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': (
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
+                'django.template.context_processors.tz',
+                'django.template.context_processors.csrf',
+                'django.template.context_processors.request',
+                'django.contrib.messages.context_processors.messages',
+                # DjangoCMS
+                'sekizai.context_processors.sekizai',
+                'cms.context_processors.cms_settings',
+            ),
+            'debug': DEBUG
+        }
+    },
+]
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
@@ -211,25 +245,31 @@ WSGI_APPLICATION = '{{ project_name }}.wsgi.application'
 
 # Define your database connections
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.',
-        'NAME': '',
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
-        #'OPTIONS': {
-        #    'init_command': 'SET storage_engine=InnoDB',
-        #    'charset' : 'utf8',
-        #    'use_unicode' : True,
-        #},
-        #'TEST_CHARSET': 'utf8',
-        #'TEST_COLLATION': 'utf8_general_ci',
-    },
-    # 'slave': {
-    #     ...
-    # },
+    # dj_database_url by default reads the 'DATABASE_URL' environment variable:
+    'default': dj_database_url.config(default="mysql://"),
 }
+
+# Custom definition:
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.',
+#         'NAME': '',
+#         'USER': '',
+#         'PASSWORD': '',
+#         'HOST': '',
+#         'PORT': '',
+#         #'OPTIONS': {
+#         #    'init_command': 'SET storage_engine=InnoDB',
+#         #    'charset' : 'utf8',
+#         #    'use_unicode' : True,
+#         #},
+#         #'TEST_CHARSET': 'utf8',
+#         #'TEST_COLLATION': 'utf8_general_ci',
+#     },
+#     # 'slave': {
+#     #     ...
+#     # },
+# }
 
 # Uncomment this and set to all slave DBs in use on the site.
 # SLAVE_DATABASES = ['slave']
@@ -239,15 +279,6 @@ ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
 )
 MANAGERS = ADMINS
-
-# SECURITY WARNING: don't run with debug turned on in production!
-# Debugging displays nice error messages, but leaks memory. Set this to False
-# on all server instances and True only for development.
-DEBUG = TEMPLATE_DEBUG = False
-
-# Is this a development instance? Set this to True on development/master
-# instances and False on stage/prod.
-DEV = False
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
